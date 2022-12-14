@@ -12,7 +12,8 @@ import (
 
 func TestBcryptingIsEasy(t *testing.T) {
 	pass := []byte("mypassword")
-	hp, err := GenerateFromPassword(pass, 0)
+	salt := []byte{}
+	hp, err := GenerateFromPassword(pass, 0, salt)
 	if err != nil {
 		t.Fatalf("GenerateFromPassword error: %s", err)
 	}
@@ -154,15 +155,16 @@ func TestCostValidationInHash(t *testing.T) {
 	}
 
 	pass := []byte("mypassword")
+	salt := []byte{}
 
 	for c := 0; c < MinCost; c++ {
-		p, _ := newFromPassword(pass, c)
+		p, _ := newFromPassword(pass, c, salt)
 		if p.cost != DefaultCost {
 			t.Errorf("newFromPassword should default costs below %d to %d, but was %d", MinCost, DefaultCost, p.cost)
 		}
 	}
 
-	p, _ := newFromPassword(pass, 14)
+	p, _ := newFromPassword(pass, 14, salt)
 	if p.cost != 14 {
 		t.Errorf("newFromPassword should default cost to 14, but was %d", p.cost)
 	}
@@ -172,7 +174,7 @@ func TestCostValidationInHash(t *testing.T) {
 		t.Errorf("newFromHash should maintain the cost at %d, but was %d", p.cost, hp.cost)
 	}
 
-	_, err := newFromPassword(pass, 32)
+	_, err := newFromPassword(pass, 32, salt)
 	if err == nil {
 		t.Fatalf("newFromPassword: should return a cost error")
 	}
@@ -182,7 +184,8 @@ func TestCostValidationInHash(t *testing.T) {
 }
 
 func TestCostReturnsWithLeadingZeroes(t *testing.T) {
-	hp, _ := newFromPassword([]byte("abcdefgh"), 7)
+	salt := []byte{}
+	hp, _ := newFromPassword([]byte("abcdefgh"), 7, salt)
 	cost := hp.Hash()[4:7]
 	expected := []byte("07$")
 
@@ -209,7 +212,8 @@ func TestMinorNotRequired(t *testing.T) {
 func BenchmarkEqual(b *testing.B) {
 	b.StopTimer()
 	passwd := []byte("somepasswordyoulike")
-	hash, _ := GenerateFromPassword(passwd, DefaultCost)
+	salt := []byte{}
+	hash, _ := GenerateFromPassword(passwd, DefaultCost, salt)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		CompareHashAndPassword(hash, passwd)
@@ -218,10 +222,11 @@ func BenchmarkEqual(b *testing.B) {
 
 func BenchmarkDefaultCost(b *testing.B) {
 	b.StopTimer()
+	salt := []byte{}
 	passwd := []byte("mylongpassword1234")
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		GenerateFromPassword(passwd, DefaultCost)
+		GenerateFromPassword(passwd, DefaultCost, salt)
 	}
 }
 
